@@ -3,7 +3,7 @@ from torchtext.data import Dataset
 import torch
 import torch.utils.data
 from torch.autograd import Variable
-from torchtext.vocab import Vocab
+from torchtext.vocab import Vocab, GloVe
 
 from collections import Counter
 from collections import OrderedDict
@@ -81,4 +81,7 @@ class MTLField(Field):
         specials = list(OrderedDict.fromkeys(
             tok for tok in [self.pad_token, self.init_token, self.eos_token]
             if tok is not None))
-        self.vocab = Vocab(counter, specials=specials, **kwargs)
+        self.vocab = Vocab(counter, specials=specials)
+        # self.vocab.load_vectors("")
+        self.vocab.load_vectors(GloVe(name="6B", dim=200))
+    #GloVe(name="6B", dim=200)

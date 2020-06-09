@@ -11,6 +11,8 @@ def get_parser():
                         help='pretrained word embeddings file')
     parser.add_argument('--emfiledir', type=str, default='.',
                         help='directory of the pretrained word embeddings file')
+    parser.add_argument('--fix_embedding', action='store_true',
+                        help='fix the training of embeddings', default=False)
     parser.add_argument('--cutlength', type=bool, default=False,
                         help='cut the sentences with mean + 2std')
     parser.add_argument('--task-split', type=int, default=0,

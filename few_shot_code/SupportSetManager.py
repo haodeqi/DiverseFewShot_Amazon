@@ -12,7 +12,7 @@ class SupportSetManager(object):
         self.TEXT = TEXT
         self.sample_per_class = sample_per_class
 
-        print 'Picking up prototypes'
+        print('Picking up prototypes')
         self.prototype_text_list = []
 
         for taskid, (TEXT, LABEL, train, dev, test) in enumerate(datasets):
@@ -37,7 +37,7 @@ class SupportSetManager(object):
                 if self.sample_per_class >= 1 and self.sample_per_class < len(prototype_text[lab_id]):
                     prototype_text[lab_id] = prototype_text[lab_id][:self.sample_per_class]
 
-            print 'Task %d: picked up %d prototypes'%(taskid, self.sample_per_class)
+            print('Task %s: picked up %s prototypes', (taskid, self.sample_per_class))
             self.prototype_text_list.append(prototype_text)
 
     def select_support_set(self, taskid, policy):
@@ -56,14 +56,14 @@ class SupportSetManager(object):
 
         prototype_matrix = self.TEXT.numericalize(
             self.TEXT.pad(x for x in examples_text),
-            device=self.config.gpu, train=True)
+            device=self.config.device)
         #if taskid == 0: #TODO test the consistency of the first example
         #    print examples_text
         #    print prototype_matrix
 
         return prototype_matrix
 
-    def select_support_set_random(self, taskid):
+    def select_support_set_random(self, taskid, ):
         prototype_text = self.prototype_text_list[taskid]
 
         examples_text = []
@@ -73,7 +73,7 @@ class SupportSetManager(object):
 
         prototype_matrix = self.TEXT.numericalize(
             self.TEXT.pad(x for x in examples_text),
-            device=self.config.gpu, train=True)
+            device=self.config.device)
         #if taskid == 0: #TODO test the consistency of the first example
         #    print examples_text
         #    print prototype_matrix
@@ -87,7 +87,7 @@ class SupportSetManager(object):
         for lab_id in range(len(prototype_text)):
             prototype_sent = self.TEXT.numericalize(
                 self.TEXT.pad(x for x in prototype_text[lab_id]),
-                device=self.config.gpu, train=True)
+                device=self.config.device)
 
             prototype_matrix = mnet_model.get_hidden(prototype_sent)
             prototype_emb_list.append(torch.mean(prototype_matrix, dim=0))
@@ -104,7 +104,7 @@ class SupportSetManager(object):
             N = len(prototype_text[lab_id])
             prototype_sent = self.TEXT.numericalize(
                 self.TEXT.pad(x for x in prototype_text[lab_id]),
-                device=self.config.gpu, train=True)
+                device=self.config.device, train=True)
 
             prototype_matrix = mnet_model.get_hidden(prototype_sent)
             mean_vec = torch.mean(prototype_matrix, dim=0)
@@ -127,7 +127,7 @@ class SupportSetManager(object):
             if sample_per_class > len(prototype_text[lab_id]):
                 prototype_sent = self.TEXT.numericalize(
                     self.TEXT.pad(x for x in prototype_text[lab_id]),
-                    device=self.config.gpu, train=True)
+                    device=self.config.device)
             else:
                 top_ind = range(len(prototype_text[lab_id]))
                 random.shuffle(top_ind)
@@ -135,7 +135,7 @@ class SupportSetManager(object):
                 prototype_text_sample = [prototype_text[lab_id][i] for i in top_ind]
                 prototype_sent = self.TEXT.numericalize(
                     self.TEXT.pad(x for x in prototype_text_sample),
-                    device=self.config.gpu, train=True)
+                    device=self.config.device)
 
             prototype_matrix = mnet_model.get_hidden(prototype_sent)
             prototype_emb_list.append(torch.mean(prototype_matrix, dim=0))
@@ -159,11 +159,11 @@ class SupportSetManager(object):
                 #print len_text
                 batch_prototype_sent = self.TEXT.numericalize(
                     self.TEXT.pad(x for x in batch_text),
-                    device=self.config.gpu, train=True)
+                    device=self.config.device, train=True)
                 #print batch_prototype_sent
                 prototype_matrix = mnet_model.get_hidden(batch_prototype_sent)
                 prototype_matrix = Variable(prototype_matrix.data)
-                
+
                 #prototype_emb_list.append(torch.mean(prototype_matrix, dim=0))
                 #prototype_emb_list.append(torch.sum(prototype_matrix, dim=0) / len_text)
                 #break

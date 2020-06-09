@@ -1,6 +1,6 @@
 import sys
 import torch
-import MatchingCnn
+from few_shot_code import MatchingCnn
 
 def get_length_avg_std(dataset):
     len_vec = [len(x.text) for x in dataset.examples]
@@ -16,7 +16,7 @@ def get_maxlen_dataset(dataset):
 def padding_dataset(dataset, maxlen=None):
     if not maxlen:
         maxlen = get_maxlen_dataset(dataset)
-    print 'maxlen:', maxlen
+    print('maxlen %s', maxlen)
     for example in dataset.examples:
         if len(example.text) > maxlen:
             example.text = example.text[:maxlen]
@@ -26,7 +26,7 @@ def padding_dataset(dataset, maxlen=None):
 
 
 def eval_matching_model(model, criterion, dev_iter, test_iter, prototype_list, batch_size, pre_compute=True):
-    model.eval();
+    model.eval()
     for set_idx, set_iter in enumerate([dev_iter, test_iter]):
         if not pre_compute:
             set_iter.init_epoch()
@@ -52,8 +52,9 @@ def eval_matching_model(model, criterion, dev_iter, test_iter, prototype_list, b
             test_loss = tmp_loss
     return dev_acc, test_acc, dev_loss, test_loss
 
+
 def eval_classification_model(model, criterion, dev_iter, test_iter, batch_size, pre_compute=False, selected_batch=False):
-    model.eval();
+    model.eval()
     for set_idx, set_iter in enumerate([dev_iter, test_iter]):
         if not pre_compute and not selected_batch:
             set_iter.init_epoch()

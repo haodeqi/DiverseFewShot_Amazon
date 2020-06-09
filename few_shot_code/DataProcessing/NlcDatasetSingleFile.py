@@ -1,9 +1,10 @@
 import os
 
 import torchtext.data as data
-from torchtext.data import ZipDataset
+from torchtext.data import Dataset
+OFFTOPIC = "UNCONFIDENT_INTENT_FROM_SLAD"
 
-class NlcDatasetSingleFile(ZipDataset):
+class NlcDatasetSingleFile(Dataset):
 
     @staticmethod
     def sort_key(ex):
@@ -32,9 +33,11 @@ class NlcDatasetSingleFile(ZipDataset):
             for line in f_data:
                 pair = line.strip().split('\t')
                 if len(pair) != 2:
-                    print 'ignore case in %s'%path, pair
-                    continue
-                label = pair[1]
+                    # print('ignore case in %s'%path, pair)
+                    # continue
+                    label = OFFTOPIC
+                else:
+                    label = pair[1]
                 line_data = pair[0]
                 examples.append(data.Example.fromlist([line_data, label], fields))
 

@@ -105,7 +105,7 @@ class mul_scalar(torch.autograd.Function):
         return T.mul(s_var[0])
 
     def backward(self, grad_output):
-        print 'here'
+        print('here')
         T, s_var = self.saved_tensors
         return grad_output.mul(s_var[0]), grad_output.dot(T)
 

@@ -2,7 +2,7 @@ import random
 import torch
 import numpy as np
 from torch.autograd import Variable
-from SupportSetManager import SupportSetManager
+from few_shot_code.SupportSetManager import SupportSetManager
 
 class SupportSetManagerLargeHybrid(SupportSetManager):
     FIXED_FIRST = 0
@@ -35,7 +35,7 @@ class SupportSetManagerLargeHybrid(SupportSetManager):
 
         prototype_matrix = self.TEXT.numericalize(
             self.TEXT.pad(x for x in examples_text),
-            device=self.config.gpu, train=True)
+            device=self.config.device)
 
         return prototype_matrix
 
@@ -47,14 +47,14 @@ class SupportSetManagerLargeHybrid(SupportSetManager):
             if self.sample_per_class >= 1 and self.sample_per_class < len(prototype_text[lab_id]):
                 prototype_sent = self.TEXT.numericalize(
                     self.TEXT.pad(x for x in prototype_text[lab_id][:self.sample_per_class]),
-                    device=self.config.gpu, train=True)
+                    device=self.config.device)
             else:
                 prototype_sent = self.TEXT.numericalize(
                     self.TEXT.pad(x for x in prototype_text[lab_id]),
-                    device=self.config.gpu, train=True)
+                    device=self.config.device)
 
             prototype_matrix = mnet_model.get_hidden(prototype_sent)
             prototype_emb_list.append(torch.mean(prototype_matrix, dim=0))
         #print prototype_emb_list
         #return torch.cat(prototype_emb_list, dim=0) #works for the new pytorch version
-        return torch.cat(prototype_emb_list, 0)
+        return torch.cat(prototype_emb_list, 0).view(-1,200)

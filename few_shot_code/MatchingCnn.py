@@ -3,13 +3,13 @@ import torch.nn as nn
 import torch.optim as OPT
 
 # import data
-from CNNModel import CnnEncoder
+from few_shot_code.CNNModel import CnnEncoder
 # from RnnModel import Encoder as RnnEncoder
 from torch.autograd import Variable
 
 from torchtext import data
-import UtilFunctions
-from UtilLayer import *
+import few_shot_code.UtilFunctions
+from few_shot_code.UtilLayer import *
 import sys
 from copy import deepcopy
 
@@ -20,7 +20,7 @@ class MatchPair():
         self.y = y
 
 class MatchingCnn(nn.Module):
-    def __init__(self, config, w_hid_size, h_hid_size, num_tasks=4, pre_trained_emb=None, debug_mode=False, additional_proj=False, normal_init=False):
+    def __init__(self, config, w_hid_size, h_hid_size, num_tasks=4, pre_trained_emb=None, debug_mode=False, additional_proj=False, normal_init=False, retrain_embedding=True):
         super(MatchingCnn, self).__init__()
         self.config = config
         self.w_hid_size = w_hid_size
@@ -31,10 +31,12 @@ class MatchingCnn(nn.Module):
         self.column_embed = nn.Sequential()
         self.column_embed.add_module('transpose1', Transpose())
         embed = nn.Embedding(num_embeddings=config.n_embed, embedding_dim=config.d_embed)
-        #if normal_init:
-        embed.weight.data.normal_(mean=0, std=0.1)
+        if normal_init:
+            embed.weight.data.normal_(mean=0, std=0.1)
         if pre_trained_emb is not None:
             embed.weight.data = deepcopy(pre_trained_emb)
+        embed.weight.requires_grad = retrain_embedding
+
         self.column_embed.add_module('embed', embed)
 
         self.column_encoder = nn.Sequential()
@@ -62,7 +64,7 @@ class MatchingCnn(nn.Module):
 
         output = self.match_classifier(MatchPair(hidden, y_hidden))
         return output
-    
+
     def get_hidden(self, x):
         emb = self.column_embed(x)
         hidden = self.column_encoder(emb)

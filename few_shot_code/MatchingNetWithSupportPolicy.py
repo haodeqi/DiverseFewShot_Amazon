@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 
 # import data
-from MatchingCnn import MatchingCnn, MatchPair
+from few_shot_code.MatchingCnn import MatchingCnn, MatchPair
 from torch.autograd import Variable
+
 
 class MatchPairStd(MatchPair):
     def __init__(self, x, y):
@@ -13,6 +14,7 @@ class MatchPairStd(MatchPair):
 
     def set_std(self, std):
         self.std = std
+
 
 class MatchingLayerL2(nn.Module):
     def __init__(self, nonlinear='softmax', take_sqrt=True):
@@ -51,15 +53,16 @@ class MatchingLayerL2(nn.Module):
 
 class MatchingCnnWithSuppPolicy(MatchingCnn):
     def __init__(self, config, w_hid_size, h_hid_size, num_tasks=4, pre_trained_emb=None, debug_mode=False,
-                 additional_proj=False, normal_init=False):
+                 additional_proj=False, normal_init=False, retrain_embedding=True):
         super(MatchingCnnWithSuppPolicy, self).__init__(config, w_hid_size, h_hid_size, num_tasks,
                                                         pre_trained_emb, debug_mode,
-                                                        additional_proj, normal_init
-                                                        )
-        if config.sim_measure == 'L2':
-            self.match_classifier = MatchingLayerL2(nonlinear='softmax', take_sqrt=config.take_sqrt)
+                                                        additional_proj, normal_init,
+                                                        retrain_embedding)
+        # if config.sim_measure == 'L2':
+        #     self.match_classifier = MatchingLayerL2(nonlinear='softmax', take_sqrt=config.take_sqrt)
 
     def forward(self, input, x_mode='words', y_mode='words', std=None):
+
         if x_mode == 'words':
             emb = self.column_embed(input.x)
             # emb = Variable(emb.data)
@@ -73,10 +76,11 @@ class MatchingCnnWithSuppPolicy(MatchingCnn):
             y_hidden = self.column_encoder(y_emb)
         else:
             y_hidden = input.y
-
+        print(hidden.shape)
+        print(y_hidden.shape)
         match_pair = MatchPairStd(hidden, y_hidden)
         if std is not None:
             match_pair.std = std
         output = self.match_classifier(match_pair)
-
+        print(output.shape)
         return output

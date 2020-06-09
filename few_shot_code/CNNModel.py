@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.legacy.nn as luann
 # import torch.nn.functional as F
 import sys
 
-from UtilLayer import Transpose, MaxPool, View
+from few_shot_code.UtilLayer import Transpose, MaxPool, View
 
 class CnnEncoder(nn.Module):
     def __init__(self, config, d_in, d_out, winsize = None, short_cut=False, padding=1, nonlinear='relu', normal_init=False):
@@ -31,7 +30,7 @@ class CnnEncoder(nn.Module):
 
         conv_nn = nn.Conv1d(self.d_in, self.d_out, self.winsize, padding=self.padding)
         if self.normal_init:
-            print 'random_init conv weights: normal'
+            print('random_init conv weights: normal')
             conv_nn.weight.data.normal_(mean=0, std=0.1)
             conv_nn.bias.data.normal_(mean=0, std=0.1)
         self.model.add_module('conv', conv_nn)
@@ -49,12 +48,13 @@ class CnnEncoder(nn.Module):
         return output
 
 class CNNModel(nn.Module):
-    def __init__(self, vocab_size, num_labels, emb_size, w_hid_size, h_hid_size, win, batch_size, with_proj=False):
+    def __init__(self, vocab_size, num_labels, emb_size, w_hid_size, h_hid_size, win, batch_size, with_proj=False, retrain_embedding=True):
         super(CNNModel, self).__init__()
 
         self.model = nn.Sequential()
         self.model.add_module('transpose', Transpose())
         self.embed = nn.Embedding(num_embeddings=vocab_size, embedding_dim=emb_size)
+        self.embed.weight.requires_grad=retrain_embedding
         self.model.add_module('emb', self.embed)
         if with_proj:
             self.model.add_module('view1', View(-1, emb_size))

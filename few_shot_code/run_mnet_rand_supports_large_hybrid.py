@@ -10,30 +10,33 @@ import torch.nn as nn
 import torch.optim as OPT
 
 # import data
-from SupportSetManagerLargeHybrid import SupportSetManagerLargeHybrid
-from MatchingCnn import MatchPair
-import ArgumentProcessorMnet as args_mnet
-from MatchingNetWithSupportPolicy import MatchingCnnWithSuppPolicy
-from DataProcessing.NlcDatasetSingleFile import NlcDatasetSingleFile
+from few_shot_code.SupportSetManagerLargeHybrid import SupportSetManagerLargeHybrid
+from few_shot_code.MatchingCnn import MatchPair
+import few_shot_code.ArgumentProcessorMnet as args_mnet
+from few_shot_code.MatchingNetWithSupportPolicy import MatchingCnnWithSuppPolicy
+from few_shot_code.DataProcessing.NlcDatasetSingleFile import NlcDatasetSingleFile
 
 from torchtext import data
-from DataProcessing.MTLField import MTLField
+from few_shot_code.DataProcessing.MTLField import MTLField
 
 parser = args_mnet.get_parser()
 args = parser.parse_args()
 
-print args
+print(args)
 batch_size = args.batch_size
 #args.epochs = 10
 args.seed = 12345678
 
-torch.cuda.set_device(args.gpu)
+#torch.cuda.set_device(args.gpu)
 torch.manual_seed(args.seed)
-if args.cuda:
+if args.cuda and torch.cuda.is_available():
+    args.device = torch.device("cuda")
     torch.cuda.manual_seed(args.seed)
+else:
+    args.device = torch.device("cpu")
 
 
-def load_train_test_files(listfilename, test_suffix='.test'):
+def load_train_test_files(listfilename, test_suffix='.dev'):
     filein = open(listfilename, 'r')
     file_tuples = []
     for line in filein:
@@ -49,10 +52,10 @@ def load_train_test_files(listfilename, test_suffix='.test'):
 datasets = []
 list_dataset = []
 file_tuples = load_train_test_files(args.filelist)
-print file_tuples
+print(file_tuples)
 TEXT = MTLField(lower=True)
 for (trainfile, devfile, testfile) in file_tuples:
-    print trainfile, devfile, testfile
+    print(trainfile, devfile, testfile)
     LABEL1 = data.Field(sequential=False)
     train1, dev1, test1 = NlcDatasetSingleFile.splits(
         TEXT, LABEL1, path=args.workingdir, train=trainfile,
@@ -95,7 +98,7 @@ for taskid, (TEXT, LABEL, train, dev, test) in enumerate(datasets):
     # print('TEXT.vocab.vectors.size()', TEXT.vocab.vectors.size())
     print('len(LABEL.vocab)', len(LABEL.vocab)),
     #print LABEL.vocab.itos
-    print len(LABEL.vocab.itos)
+    print(len(LABEL.vocab.itos))
     #if taskid == 0:
     #    print LABEL.vocab.stoi
     #print len(LABEL.vocab.stoi)
@@ -113,23 +116,23 @@ ss_manager = SupportSetManagerLargeHybrid(datasets, config, config.sample_per_cl
 config.n_labels = []
 for (TEXT, LABEL, train, dev, test) in datasets:
     config.n_labels.append(len(LABEL.vocab))
-print config.n_labels
+print(config.n_labels)
 
 config.n_cells = 1
 config.maxpool = True
 
 config.num_tasks = len(config.n_labels)
-print 'num_tasks',
-print config.num_tasks,
-print len(dataset_iters)
+print('num_tasks',)
+print(config.num_tasks)
+print(len(dataset_iters))
 #model = MatchingCnn(config, args.emsize, config.d_hidden, num_tasks=config.num_tasks, pre_trained_emb=TEXT.vocab.vectors, normal_init=True)
 #model = MatchingCnnWithSuppPolicy(config, args.emsize, config.d_hidden, num_tasks=config.num_tasks, pre_trained_emb=TEXT.vocab.vectors, normal_init=True)
-model = MatchingCnnWithSuppPolicy(config, args.emsize, config.d_hidden, num_tasks=config.num_tasks, normal_init=True)
+model = MatchingCnnWithSuppPolicy(config, args.emsize, config.d_hidden, num_tasks=config.num_tasks, normal_init=True, retrain_embedding=(not args.fix_embedding))
 
-if args.gpu != -1:
-    model.cuda()
+# if args.gpu != -1:
+#     model.cuda()
 
-print model
+print(model)
 
 # criterion = nn.NLLLoss()
 criterion = nn.CrossEntropyLoss()
@@ -155,13 +158,17 @@ overall_log_template = 'Best dev acc: {:>8.6f}, epoch: {:>5.0f}; Best test acc: 
 print(header)
 iter_per_sample = 1
 n_correct, n_total = 0, 0
-for t in range(num_batch_total * args.epochs / iter_per_sample):
+print("success loading")
+for t in range(int(num_batch_total * args.epochs / iter_per_sample)):
     taskid = random.randint(0, config.num_tasks - 1)
     (train_iter, dev_iter, test_iter) = dataset_iters[taskid]
     train_iter.init_epoch()
     model.train()
 
+    print("t %",t)
+
     for num_iter in range(iter_per_sample):
+        print("num_iter %", num_iter)
         batch = next(iter(train_iter))
         sys.stdout.write('%d\r'%t)
         sys.stdout.flush()
@@ -189,15 +196,15 @@ for t in range(num_batch_total * args.epochs / iter_per_sample):
 
     #if (t + 1) % num_batch_total == 0:
     if (t + 1) % min(10000 / iter_per_sample, num_batch_total) == 0:
-        #if config.lrDecay > 0:
-        #    cur_lr = opt.getScale()
-        #    cur_lr = cur_lr * 0.9
-        #    opt.setScale(cur_lr * config.lr > 0.0001 and cur_lr or 0.0001 / config.lr)
-        #    print 'lr: ', opt.getScale() * config.lr
+        if config.lrDecay > 0:
+           cur_lr = opt.getScale()
+           cur_lr = cur_lr * 0.9
+           opt.setScale(cur_lr * config.lr > 0.0001 and cur_lr or 0.0001 / config.lr)
+           print('lr: ', opt.getScale() * config.lr)
 
         print(log_template.format(time.time() - start,
                                   (t + 1) / num_batch_total, (t + 1), (t + 1), num_batch_total * args.epochs,
-                                  100., loss.data[0], ' ' * 8,
+                                  100., loss.item(), ' ' * 8,
                                   n_correct / n_total * 100, ' ' * 12))
         #continue
 
@@ -251,7 +258,7 @@ for t in range(num_batch_total * args.epochs / iter_per_sample):
 
         avg_dev_acc /= config.num_tasks
         avg_test_acc /= config.num_tasks
-        print 'Iteration Results:\t{:>4.2f}\t{:>4.2f}'.format(avg_dev_acc, avg_test_acc)
+        print('Iteration Results:\t{:>4.2f}\t{:>4.2f}'.format(avg_dev_acc, avg_test_acc))
 
         if avg_dev_acc > best_dev_acc:
             best_dev_acc = avg_dev_acc
@@ -268,4 +275,3 @@ for t in range(num_batch_total * args.epochs / iter_per_sample):
             best_test_epoch = (t + 1) / num_batch_total
 
         print(overall_log_template.format(best_dev_acc, best_dev_epoch, best_test_acc, best_test_epoch))
-
