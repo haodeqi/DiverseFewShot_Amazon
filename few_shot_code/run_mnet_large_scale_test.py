@@ -123,7 +123,8 @@ config.n_cells = 1
 config.maxpool = True
 
 model = MatchingCnnWithSuppPolicy(config, args.emsize, config.d_hidden, num_tasks=config.num_tasks, normal_init=True)
-
+if args.cuda:
+    model =  model.to(torch.device("cuda:0"))
 # criterion = nn.NLLLoss()
 criterion = nn.CrossEntropyLoss()
 opt = OPT.Adam(model.parameters(), lr=args.lr)
