@@ -148,13 +148,13 @@ n_correct, n_total = 0, 0
 num_batch_total = np.ceil(num_batch_total).astype(int)
 iterations = np.ceil(num_batch_total * args.epochs / iter_per_sample)
 iterations = iterations.astype(int)
-for t in range(1):
+for t in range(iterations):
     taskid = random.randint(0, config.num_tasks - 1)
     (train_iter, dev_iter, test_iter) = dataset_iters[taskid]
     train_iter.init_epoch()
     model.train()
 
-    for num_iter in range(1):
+    for num_iter in range(len(train_iter)):
         batch = next(iter(train_iter))
         sys.stdout.write('%d\r'%t)
         sys.stdout.flush()
@@ -170,9 +170,6 @@ for t in range(1):
             else:
                 supp_text = ss_manager.select_support_set(taskid, ss_manager.RANDOM)
         answer = model(MatchPair(batch.text, supp_text))
-        print(batch.text.shape, "batch text shape")
-        print(supp_text.shape, "supp text shape")
-        print(answer.shape, "answer shape")
         n_correct += (torch.max(answer, 1)[1].view(batch.label.size()).data == batch.label.data).sum()
         n_total += batch.batch_size
         train_acc = 100. * n_correct / n_total
@@ -181,8 +178,8 @@ for t in range(1):
         opt.step()
 
     #print(t, iter_per_sample, num_batch_total)
-    #if (t + 1) % num_batch_total == 0:
-    if (t + 1) % min(10000 / iter_per_sample, num_batch_total) == 0:
+    if (t + 1) % num_batch_total == 0:
+    #if (t + 1) % min(10000 / iter_per_sample, num_batch_total) == 0:
         # if config.lrDecay > 0:
         #     scheduler.step(loss)
         # if config.lrDecay > 0:
